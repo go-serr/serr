@@ -8,7 +8,7 @@ import (
 
 // SErr is a Structured Error wrapper
 // Supports wrapping of errors with a list of key, values to nicely support structured logging
-// Works nicely with github.com/rohanthewiz/logger
+// Works nicely with github.com/go-rlog/logger
 type SErr struct {
 	err error // the usual error
 	// support structured logging of the format key1, val1, key2, val2

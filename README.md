@@ -2,7 +2,7 @@
 The Structured Error package can enrich an error with attributes
 at each stack frame  while the error is being bubbled up to the caller
 without concern for logging at each frame. The SErr can then be logged
-with a structured logger like `github.com/rohanthewiz/logger` or
+with a structured logger like `github.com/go-rlog/logger` or
 printed with it's own string functions.
 
 ### Usage
@@ -14,8 +14,8 @@ package main
 import (
 	"errors"
 
-	"github.com/rohanthewiz/logger
-	"github.com/rohanthewiz/serr
+	"github.com/go-rlog/logger
+	"github.com/go-serr/serr
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 	fmt.Println(serr.StringFromErr(errWrapped))
 	// ==> some error has occurred => location->logtest/main.go:16; function->main.main; msg->Error occurred when trying to do things
 
-	// A structured error aware logger like github.com/rohanthewiz/logger can output all attributes
+	// A structured error aware logger like github.com/go-rlog/logger can output all attributes
 	logger.LogErr(errWrapped, "An Error occurred")
 	// => ERRO[0000] some error has occurred	error="some error has occurred" fields.msg="An Error occurred - Error occurred when trying to do things"
 	// function=main.main location="logtest/main.go:16"

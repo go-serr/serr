@@ -56,8 +56,8 @@ func TestStringFromErr(t *testing.T) {
 		{
 			name:    "SErr with message",
 			err:     NewSErr("serr message"),
-			want:    "serr message - Error: location[serr/helpers_test.go:58], function[rohanthewiz/serr.TestStringFromErr]",
-			wantAlt: "serr message - Error: function[rohanthewiz/serr.TestStringFromErr], location[serr/helpers_test.go:58]",
+			want:    "serr message - Error: location[serr/helpers_test.go:58], function[go-serr/serr.TestStringFromErr]",
+			wantAlt: "serr message - Error: function[go-serr/serr.TestStringFromErr], location[serr/helpers_test.go:58]",
 		},
 	}
 
