@@ -124,7 +124,7 @@ func (se SErr) FieldsMapOfSliceOfAny() map[string][]any {
 			key = fmt.Sprintf("%v", val)
 		} else {
 			if origArr, ok := flds[key]; ok { // key is already in the map
-				flds[key] = append(origArr, val)
+				flds[key] = append([]any{val}, origArr...)
 			} else {
 				flds[key] = []any{val}
 			}

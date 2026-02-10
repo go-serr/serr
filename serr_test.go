@@ -12,7 +12,7 @@ func TestSErrFromatting(t *testing.T) {
 	ser2 := WrapAsSErr(ser, "att2", "valNew")
 	ser3 := WrapAsSErr(ser2, "att2", "valNewer")
 
-	const expected = "att2[val2 -> valNew -> valNewer]"
+	const expected = "att2[valNewer -> valNew -> val2]"
 
 	result := ser3.FieldsAsCustomString(", ", " -> ")
 	if !strings.Contains(result, expected) {
