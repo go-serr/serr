@@ -106,7 +106,7 @@ count := mapAny["count"].(int) // 123
 ### FieldsMapOfSliceOfAny - Get attributes as map of slices
 
 ```go
-// Values of duplicate keys are collected into a slice (innermost first)
+// Values of duplicate keys are collected into a slice (caller to callee order)
 mapSlice := se.FieldsMapOfSliceOfAny()
 locations := mapSlice["location"] // []any of all location values
 ```
