@@ -23,9 +23,9 @@ func TestWrapF(t *testing.T) {
 		t.Fatal("WrapF returned nil")
 	}
 
-	se, ok := out.(SErr)
+	se, ok := out.(*SErr)
 	if !ok {
-		t.Fatal("WrapF should return an error containing a concrete SErr type")
+		t.Fatal("WrapF should return an error containing a concrete *SErr type")
 	}
 
 	// original error preserved

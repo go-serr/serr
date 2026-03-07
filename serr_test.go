@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestSErrFromatting(t *testing.T) {
+func TestSErrFormatting(t *testing.T) {
 	ser := NewSErr("my error", "att1", "val1", "att2", "val2")
 	ser2 := WrapAsSErr(ser, "att2", "valNew")
 	ser3 := WrapAsSErr(ser2, "att2", "valNewer")
@@ -23,8 +23,8 @@ func TestSErrFromatting(t *testing.T) {
 	ser6 := Wrap(ser5, "att6", "val6")
 	ser7 := Wrap(ser6, "att7", "val7")
 
-	if serr7, ok := ser7.(SErr); !ok {
-		t.Errorf("Expected ser7 to be an SErr, got %#v", ser7)
+	if serr7, ok := ser7.(*SErr); !ok {
+		t.Errorf("Expected ser7 to be an *SErr, got %#v", ser7)
 	} else {
 		fmt.Println("serr7 =>", StringFromErr(serr7))
 	}
@@ -45,14 +45,14 @@ func TestSErr(t *testing.T) {
 		t.Errorf("Expected custom error to contain '%s', got '%s'", strErr1, ser.Error())
 		t.FailNow()
 	}
-	if _, ok := ser.(SErr); !ok {
-		t.Error("ser should be a SErr")
+	if _, ok := ser.(*SErr); !ok {
+		t.Error("ser should be a *SErr")
 		t.FailNow()
 	}
 
 	// Add some fields to an existing sErr
 	err := Wrap(ser, "thing2", "thing2NewVal")
-	se, ok := err.(SErr)
+	se, ok := err.(*SErr)
 	if !ok {
 		t.Error("Wrap should return an error containing a concrete SErr type")
 	} else {
@@ -98,9 +98,9 @@ func TestSErr(t *testing.T) {
 	// We should be able to wrap with a single field which becomes `"msg": field`
 
 	er := Wrap(errors.New(strErr1), thisIsMyMessage)
-	se, ok = er.(SErr)
+	se, ok = er.(*SErr)
 	if !ok {
-		t.Error("er should be a SErr")
+		t.Error("er should be a *SErr")
 		t.FailNow()
 	}
 
@@ -145,10 +145,10 @@ func TestF(t *testing.T) {
 		t.Errorf("Expected error message '%s', got '%s'", expectedErr, err.Error())
 	}
 
-	// Test that it returns a SErr type
-	se, ok := err.(SErr)
+	// Test that it returns a *SErr type
+	se, ok := err.(*SErr)
 	if !ok {
-		t.Error("F() should return a SErr type")
+		t.Error("F() should return a *SErr type")
 		return
 	}
 
@@ -185,10 +185,10 @@ func TestNewF(t *testing.T) {
 		t.Errorf("Expected error message '%s', got '%s'", expectedErr, err.Error())
 	}
 
-	// Test that it returns a SErr type
-	se, ok := err.(SErr)
+	// Test that it returns a *SErr type
+	se, ok := err.(*SErr)
 	if !ok {
-		t.Error("NewF() should return a SErr type")
+		t.Error("NewF() should return a *SErr type")
 		return
 	}
 
@@ -215,6 +215,104 @@ func TestNewF(t *testing.T) {
 	expectedErr2 := "failed to connect to localhost:8080"
 	if err2.Error() != expectedErr2 {
 		t.Errorf("Expected error message '%s', got '%s'", expectedErr2, err2.Error())
+	}
+}
+
+func TestAppendAttributesToErr(t *testing.T) {
+	// Verify that AppendAttributesToErr actually mutates the error's attributes
+	err := New("base error")
+	AppendAttributesToErr(err, "extra", "value")
+
+	se, ok := err.(*SErr)
+	if !ok {
+		t.Fatal("Expected *SErr")
+	}
+
+	if val, ok := se.GetAttribute("extra"); !ok {
+		t.Fatal("Expected 'extra' attribute to be present after AppendAttributesToErr")
+	} else if val != "value" {
+		t.Fatalf("Expected 'extra' to be 'value', got %v", val)
+	}
+
+	// Non-SErr errors should be handled gracefully (no panic)
+	AppendAttributesToErr(errors.New("plain error"), "key", "val")
+
+	// Nil error should be handled gracefully
+	AppendAttributesToErr(nil, "key", "val")
+}
+
+func TestClone(t *testing.T) {
+	se := NewSErr("original", "k1", "v1")
+	clone := se.Clone()
+
+	// Clone should have the same fields
+	if clone.Error() != se.Error() {
+		t.Errorf("Clone error mismatch: got %q, want %q", clone.Error(), se.Error())
+	}
+
+	origFields := se.FieldsMap()
+	cloneFields := clone.FieldsMap()
+	if origFields["k1"] != cloneFields["k1"] {
+		t.Errorf("Clone fields mismatch for k1")
+	}
+
+	// Mutating clone should not affect original
+	clone.AppendAttributes("k2", "v2")
+	if _, ok := se.GetAttribute("k2"); ok {
+		t.Error("Mutating clone should not affect original")
+	}
+}
+
+func TestUnwrap(t *testing.T) {
+	baseErr := errors.New("base")
+	wrapped := Wrap(baseErr, "msg", "context")
+
+	unwrapped := errors.Unwrap(wrapped)
+	if unwrapped != baseErr {
+		t.Errorf("Unwrap should return base error, got %v", unwrapped)
+	}
+}
+
+func TestErrorNilInternal(t *testing.T) {
+	se := &SErr{}
+	if se.Error() != "SErr: internal error not set" {
+		t.Errorf("Expected fallback message, got %q", se.Error())
+	}
+}
+
+func TestFieldsAsString(t *testing.T) {
+	se := NewSerrNoContext(errors.New("test"))
+	se.AppendAttributes("alpha", "one", "beta", "two")
+
+	str := se.FieldsAsString()
+	if !strings.Contains(str, "alpha[one]") {
+		t.Errorf("Expected FieldsAsString to contain 'alpha[one]', got %q", str)
+	}
+	if !strings.Contains(str, "beta[two]") {
+		t.Errorf("Expected FieldsAsString to contain 'beta[two]', got %q", str)
+	}
+}
+
+func TestSErrFromErr(t *testing.T) {
+	// Plain error should be wrapped
+	plainErr := errors.New("plain")
+	se := SErrFromErr(plainErr)
+	if se.Error() != "plain" {
+		t.Errorf("Expected 'plain', got %q", se.Error())
+	}
+
+	// Existing *SErr should be returned as-is
+	existing := NewSErr("existing", "k", "v")
+	returned := SErrFromErr(existing)
+	if returned != existing {
+		t.Error("SErrFromErr should return the same *SErr pointer for an existing *SErr")
+	}
+}
+
+func TestWrapAsSErrNil(t *testing.T) {
+	se := WrapAsSErr(nil, "should not crash")
+	if se.err != nil {
+		t.Error("WrapAsSErr(nil) should return an empty SErr")
 	}
 }
 

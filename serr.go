@@ -18,27 +18,27 @@ type SErr struct {
 
 // New returns a new SErr as an error type
 func New(erStr string, fields ...string) error {
-	se := SErr{err: errors.New(erStr)}
+	se := &SErr{err: errors.New(erStr)}
 	return se.newSErr(fields...)
 }
 
 // NewF returns a new SErr from a formatted string as an error type
 // Example: serr.NewF("failed to read file: %s", filename)
 func NewF(format string, args ...any) error {
-	se := SErr{err: fmt.Errorf(format, args...)}
+	se := &SErr{err: fmt.Errorf(format, args...)}
 	return se.newSErr()
 }
 
-// NewSErr returns a new concrete SErr
-func NewSErr(er string, fields ...string) SErr {
-	ser := SErr{err: errors.New(er)}
+// NewSErr returns a new concrete *SErr
+func NewSErr(er string, fields ...string) *SErr {
+	ser := &SErr{err: errors.New(er)}
 	return ser.newSErr(fields...)
 }
 
 // F builds an SErr from a formatted string
 // in similar vein to fmt.ErrorF, python's f"", etc.
 func F(format string, fields ...any) error {
-	se := SErr{err: fmt.Errorf(format, fields...)}
+	se := &SErr{err: fmt.Errorf(format, fields...)}
 	return se.newSErr()
 }
 
@@ -72,7 +72,7 @@ func (se SErr) Error() string {
 
 // FieldsMap returns all SErr attributes as a map of string keys and values.
 // Values of duplicate fields are appended together with ' - '
-// such that the innermost attributes are to the right
+// in caller to callee order
 func (se SErr) FieldsMap() map[string]string {
 	flds := map[string]string{}
 	key := ""
@@ -93,7 +93,7 @@ func (se SErr) FieldsMap() map[string]string {
 
 // FieldsMapOfAny returns all SErr attributes as a map[string]any.
 // Values of duplicate fields are appended together with ' - '
-// such that the innermost attributes are to the right
+// in caller to callee order
 func (se SErr) FieldsMapOfAny() map[string]any {
 	flds := map[string]any{}
 	key := ""
@@ -114,7 +114,7 @@ func (se SErr) FieldsMapOfAny() map[string]any {
 
 // FieldsMapOfSliceOfAny returns all SErr attributes as a map[string][]any.
 // Values of duplicate fields are appended to the array
-// such that the innermost attributes are to the right
+// in caller to callee order
 func (se SErr) FieldsMapOfSliceOfAny() map[string][]any {
 	flds := make(map[string][]any)
 	key := ""
@@ -179,9 +179,11 @@ func (se SErr) String() (out string) {
 	return fmt.Sprintf("%s - Error: %s", se.err, se.FieldsAsCustomString(", ", " -> "))
 }
 
-// Clone returns a new SErr from an existing one
-func (se SErr) Clone() SErr {
-	return SErr{se.err, se.fields}
+// Clone returns a new *SErr from an existing one
+func (se SErr) Clone() *SErr {
+	fields := make([]any, len(se.fields))
+	copy(fields, se.fields)
+	return &SErr{se.err, fields}
 }
 
 // GetError returns the wrapped error
@@ -216,8 +218,8 @@ func (se *SErr) AppendCallerContext(frameLevel int) {
 
 // newSErr is the core method for creating a new SErr from an existing SErr
 // This is used in Wrap, New and other methods that add key val pairs and context
-func (ser SErr) newSErr(pairs ...string) (out SErr) {
-	out = SErr{err: ser.err} // add the internal error
+func (ser *SErr) newSErr(pairs ...string) *SErr {
+	out := &SErr{err: ser.err} // add the internal error
 
 	// Add any existing fields first
 	if len(ser.fields) > 0 {
@@ -229,32 +231,30 @@ func (ser SErr) newSErr(pairs ...string) (out SErr) {
 
 	// Add location info on each wrap
 	out.AppendCallerContext(FrameLevels.FrameLevel4)
-	return
+	return out
 }
 
-// NewSerrNoContext builds an SErr from an err without addition of frame context.
-// If err already contains a concrete SErr, it is returned
-func NewSerrNoContext(err error) SErr {
-	if ser, ok := err.(SErr); !ok {
-		return SErr{err: err}
-	} else {
+// NewSerrNoContext builds an *SErr from an err without addition of frame context.
+// If err already contains a concrete *SErr, it is returned
+func NewSerrNoContext(err error) *SErr {
+	if ser, ok := err.(*SErr); ok {
 		return ser
 	}
+	return &SErr{err: err}
 }
 
-// SErrFromErr simply builds an SErr from an err without addition of any context.
-// If err already contains a concrete SErr, it is returned.
+// SErrFromErr simply builds an *SErr from an err without addition of any context.
+// If err already contains a concrete *SErr, it is returned.
 // It does the same as NewSerrNoContext, but the naming here is more ergonomic.
-func SErrFromErr(err error) SErr {
-	if ser, ok := err.(SErr); !ok {
-		return SErr{err: err}
-	} else {
+func SErrFromErr(err error) *SErr {
+	if ser, ok := err.(*SErr); ok {
 		return ser
 	}
+	return &SErr{err: err}
 }
 
 // Wrap wraps an existing error. Attribute keys and values must be strings.
-// Returns an SErr (structured err) as an error
+// Returns an *SErr (structured err) as an error
 // This requires an even number of fields unless a single field is given
 // in which case it is added under the key "msg".
 func Wrap(err error, fields ...string) error {
@@ -268,7 +268,7 @@ func Wrap(err error, fields ...string) error {
 }
 
 // WrapF conveniently wraps an existing error with a msg as a formatted string
-// Returns an SErr
+// Returns an *SErr
 func WrapF(err error, format string, args ...any) error {
 	if err == nil {
 		fmt.Println("SErr: Not wrapping a nil error", "callerLocation:", FunctionLoc(FrameLevels.FrameLevel2),
@@ -282,14 +282,14 @@ func WrapF(err error, format string, args ...any) error {
 }
 
 // WrapAsSErr wraps an existing error. Attribute keys and values must be strings.
-// Returns a concrete SErr (structured err)
+// Returns a concrete *SErr (structured err)
 // This requires an even number of fields unless a single field is given
 // in which case it is added under the key "msg".
-func WrapAsSErr(err error, fields ...string) SErr {
+func WrapAsSErr(err error, fields ...string) *SErr {
 	if err == nil {
 		fmt.Println("SErr: Not wrapping a nil error", "callerLocation:", FunctionLoc(FrameLevels.FrameLevel2),
 			"callerName:", FunctionName(FrameLevels.FrameLevel2))
-		return SErr{}
+		return &SErr{}
 	}
 
 	return NewSerrNoContext(err).newSErr(fields...)

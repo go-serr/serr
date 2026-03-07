@@ -10,9 +10,9 @@ func TestUserMsg(t *testing.T) {
 	const thisIsMyMessage = "This is my message"
 
 	er := Wrap(errors.New(strErr1), thisIsMyMessage)
-	se, ok := er.(SErr)
+	se, ok := er.(*SErr)
 	if !ok {
-		t.Error("er should be a SErr")
+		t.Error("er should be a *SErr")
 		t.FailNow()
 	}
 	sl := se.Fields()
@@ -25,6 +25,20 @@ func TestUserMsg(t *testing.T) {
 	if msg, sev := UserMsg(se); msg != umsg || sev != Severity.Warn {
 		t.Errorf(`User message or severity is not as expected.
 			Expected message %s, Got %s; Expected Severity %s, Got %s`, umsg, msg, Severity.Warn, sev)
+	}
+}
+
+func TestUserMsgNilError(t *testing.T) {
+	msg, sev := UserMsg(nil)
+	if msg != "" || sev != "" {
+		t.Errorf("UserMsg(nil) should return empty strings, got msg=%q sev=%q", msg, sev)
+	}
+}
+
+func TestUserMsgFromErrNil(t *testing.T) {
+	msg := UserMsgFromErr(nil)
+	if msg != "" {
+		t.Errorf("UserMsgFromErr(nil) should return empty string, got %q", msg)
 	}
 }
 
