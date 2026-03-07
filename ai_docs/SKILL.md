@@ -32,6 +32,14 @@ err := serr.New("something went wrong")
 err := serr.New("database error", "table", "users", "operation", "insert")
 ```
 
+### NewF - Create new error with formatted message
+
+```go
+// Returns error type (like New but with format string)
+err := serr.NewF("failed to read file: %s", filename)
+err := serr.NewF("item %d not found in %s", itemID, collection)
+```
+
 ### F - Create error with formatted message
 
 ```go
@@ -93,6 +101,14 @@ if val, ok := mapFields["user_id"]; ok {
 se.AppendAttributes("count", 123, "enabled", true)
 mapAny := se.FieldsMapOfAny()
 count := mapAny["count"].(int) // 123
+```
+
+### FieldsMapOfSliceOfAny - Get attributes as map of slices
+
+```go
+// Values of duplicate keys are collected into a slice (innermost first)
+mapSlice := se.FieldsMapOfSliceOfAny()
+locations := mapSlice["location"] // []any of all location values
 ```
 
 ### GetAttribute - Get single attribute value
@@ -192,6 +208,22 @@ se2 := serr.WrapAsSErr(se1, "status", "updated")
 
 fields := se2.FieldsMap()
 // fields["status"] = "updated - initial" (newest first)
+```
+
+## Converting errors to SErr
+
+### NewSerrNoContext / SErrFromErr - Build SErr without frame context
+
+```go
+// If err is already a concrete SErr, it is returned as-is
+se := serr.NewSerrNoContext(err)
+se := serr.SErrFromErr(err) // same behavior, more ergonomic name
+```
+
+### AppendAttributesToErr - Append attributes to an error if it is an SErr
+
+```go
+serr.AppendAttributesToErr(err, "key", "value", "count", 42)
 ```
 
 ## Nil Error Handling
