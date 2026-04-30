@@ -34,7 +34,7 @@ func StringFromErr(err error) (strErr string) {
 		return
 	}
 	strErr = err.Error()
-	if ser, ok := err.(SErr); ok {
+	if ser, ok := err.(*SErr); ok {
 		strErr = ser.String()
 	}
 	return
@@ -42,7 +42,7 @@ func StringFromErr(err error) (strErr string) {
 
 func AppendAttributesToErr(err error, attrs ...any) {
 	if err != nil {
-		if ser, ok := err.(SErr); ok {
+		if ser, ok := err.(*SErr); ok {
 			ser.AppendAttributes(attrs...)
 		}
 	}
@@ -55,7 +55,7 @@ func UserMsgFromErr(err error, alt ...string) (msg string) {
 		return
 	}
 
-	if ser, ok := err.(SErr); ok {
+	if ser, ok := err.(*SErr); ok {
 		msg, _ = ser.UserMsg()
 	}
 

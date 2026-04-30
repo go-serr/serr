@@ -21,7 +21,7 @@ func UserMsg(err error) (msg, severity string) {
 	if err == nil {
 		return
 	}
-	if ser, ok := err.(SErr); ok {
+	if ser, ok := err.(*SErr); ok {
 		msg, severity = ser.UserMsg()
 	}
 	return
